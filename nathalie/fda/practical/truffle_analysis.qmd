@@ -1,0 +1,284 @@
+---
+title: "Truffle analysis with random forest"
+author: "Nathalie Vialaneix"
+date: 2023-10-09
+date-format: full
+format:
+  html:
+    page-layout: article
+    toc: true
+    toc-title: Content
+    toc-depth: 3
+    toc-location: left
+    html-math-method: mathjax
+    embed-resources: true
+    citations-hover: true
+    footnotes-hover: true
+    code-fold: true
+    code-copy: true
+    code-tools:
+      source: true
+      toggle: true
+    code-summary: "Code"
+    code-overflow: wrap
+    highlight-style: github
+    theme:
+      light: flatly
+      dark: darkly
+    echo: true
+    df-print: paged
+bibliography: ../../bibliography.bib
+---
+
+This practical's aim is to analyze the data described in [@baragatti_etal_M2019]
+using random forest with interval selection. It reproduces part of the results
+described in [@servien_vialaneix_p2023] and available in this [public 
+repository](https://forgemia.inra.fr/sfcb/simus_sfcb.git).
+
+Be sure that you have downloaded the data as described in the directory
+`../data/README.md` before you start!
+
+Be also sure to have the proper **R** packages installed (usage of `renv` is
+strongly recommended):
+```{r loadLib, message=FALSE, warning=FALSE}
+library("ggplot2")
+library("reshape2")
+library("SISIR")
+```
+
+
+# Data
+
+```{r loadData}
+pvar <- "P"
+input_file <- sprintf("../data/data_truffles_%s.rda", pvar)
+load(input_file)
+```
+
+`x` contains the weather data (here, rainfall):
+```{r exploreX}
+dim(x)
+head(x)
+```
+
+`Y` contains the corresponding truffle yield:
+```{r exploreY}
+Y
+```
+
+and `beta` contains the ground truth about important months where rainfall
+impacts the truffle yield:
+```{r exploreBeta}
+beta
+```
+
+The evolution of the yield over the years is obtained with:
+```{r yieldEvolution}
+df <- data.frame(yield = Y, year = rownames(x))
+p <- ggplot(df, aes(x = year, y = Y)) + geom_point() + theme_bw() +
+  ylab("yield") + xlab("year") + 
+  theme(axis.text.x = element_text(angle = 90))
+p
+```
+
+The weather data can be visualized with (color scale corresponds to the yield):
+```{r rainfall}
+df <- x
+df$year <- rownames(df)
+df$yield <- Y
+df <- melt(df, id.vars = c("yield", "year"))
+start_s <- names(x)[as.logical(beta)][1]
+end_s <- names(x)[as.logical(beta)][sum(beta)]
+p <- ggplot(df, aes(x = variable, y = value, colour = yield, group = year)) + 
+  geom_line() + theme_bw() + ylab("rainfall") + xlab("month") +
+  geom_segment(x = start_s, y = 300, xend = end_s, yend = 300, 
+               color = "darkred") +
+  theme(axis.text.x = element_blank())
+p
+```
+
+
+# SFCB
+
+## Run for all variants
+
+We first create a dataset containing all the combinations of the different 
+versions of the three steps of the method:
+```{r sfcbVariants}
+group_methods <- c("adjclust", "cclustofvar")
+summary_methods <- c("pls", "basics", "cclustofvar")
+selection_methods <- c("none", "boruta", "relief")
+sfcb_variants <- expand.grid(selection_methods, summary_methods, group_methods,
+                             stringsAsFactors = FALSE)
+names(sfcb_variants) <- c("selection", "summary", "group")
+# removing options that are not really compatible
+to_remove <- sfcb_variants$group == "adjclust" & 
+  sfcb_variants$summary == "cclustofvar"
+removed <- sfcb_variants[to_remove, ]
+sfcb_variants <- sfcb_variants[!to_remove, ]
+sfcb_variants
+```
+
+Then, for all these variants, we run the SFCB method:
+```{r runAll, results='hide', message=FALSE, cache=TRUE}
+res_SFCB <- lapply(1:nrow(sfcb_variants), function(rnum) {
+  out <- sfcb(x, Y, group.method = sfcb_variants$group[rnum],
+              summary.method = sfcb_variants$summary[rnum],
+              selection.method = sfcb_variants$selection[rnum],
+              seed = 123, at = 5)
+  out$beta <- beta
+  return(out)
+})
+```
+
+
+## Results for the variant adjclust / pls / boruta
+
+We select one of the results (the one using adjclust for the grouping, PLS to
+compute summaries and Boruta to select variables):
+```{r oneRes}
+selected <- sfcb_variants$group == "adjclust" & sfcb_variants$summary == "pls" &
+  sfcb_variants$selection == "boruta"
+cur_res <- res_SFCB[[which(selected)]]
+cur_res
+```
+
+The selected intervals can be displayed along with the clustering of time points
+with:
+```{r plotOneRes}
+plot(cur_res)
+```
+
+As ground truth is available, quality criteria can be computed:
+```{r qualityOneRes}
+quality(cur_res, beta)
+```
+
+
+## A comparison of all results (all variants)
+
+Now, let's create a function that outputs quality criteria for a given `SFCB` 
+object:
+```{r computeAllQualities}
+compute_SFCB_qualities <- function(res_SFCB) {
+  if ("selected" %in% names(res_SFCB)) {
+    # computing Rand index, Precision, Recall
+    res_SFCB <- quality(res_SFCB, res_SFCB$beta)
+    res_SFCB$ARI <- res_SFCB$quality$ARI
+    res_SFCB$Precision <- res_SFCB$quality$Precision
+    res_SFCB$Recall <- res_SFCB$quality$Recall
+  } else {
+    # overwise NA
+    res_SFCB$ARI <- NA
+    res_SFCB$Precision <- NA
+    res_SFCB$Recall <- NA
+  }
+  
+  # computing MSE
+  res_SFCB$bmse <- min(res_SFCB$mse$mse)
+  
+  # computing computational time
+  res_SFCB$time <- sum(res_SFCB$computational.times)
+  
+  return(res_SFCB)
+}
+```
+
+We can apply it to all results and gather the results in a clean way:
+```{r combineAllQualities}
+res_SFCB <- lapply(res_SFCB, compute_SFCB_qualities)
+sfcb_variants$mse <- sapply(res_SFCB, "[[", "bmse")
+sfcb_variants$Precision <- sapply(res_SFCB, "[[", "Precision")
+sfcb_variants$Recall <- sapply(res_SFCB, "[[", "Recall")
+sfcb_variants$ARI <- sapply(res_SFCB, "[[", "ARI")
+sfcb_variants$ct <- sapply(res_SFCB, "[[", "time")
+names(sfcb_variants)[4:8] <- c("mse", "precision", "recall", "adjusted Rand",
+                               "computational time")
+sfcb_variants[c(3:1, 4:8)]
+```
+
+Some additional clean-ups (mostly adding `NA` for missing variants):
+```{r preprocessing_sfcb_truffle}
+names(sfcb_variants)[7:8] <- c("arand", "time")
+sfcb_variants$selection <- factor(sfcb_variants$selection,
+                                  levels = c("none", "boruta", "relief"), 
+                                  ordered = TRUE)
+fill_removed <- data.frame("mse" = rep(NA, nrow(removed)),
+                           "precision" = rep(NA, nrow(removed)),
+                           "recall" = rep(NA, nrow(removed)),
+                           "arand" = rep(NA, nrow(removed)),
+                           "time" = rep(NA, nrow(removed)))
+removed <- data.frame(removed, fill_removed)
+sfcb_variants <- rbind(sfcb_variants, removed)
+```
+
+Comparison for Precision / Recall:
+```{r PR_sfcb_truffle, warning=FALSE}
+cur_res <- sfcb_variants[sfcb_variants$selection != "none", ]
+cur_res$selection <- factor(cur_res$selection, levels = c("boruta", "relief"), 
+                            ordered = TRUE)
+p <- ggplot(cur_res, aes(x = precision, y = recall, colour = group, 
+                         shape = summary)) + 
+  geom_point(size = 2) + theme_bw() + ylim(0, 1) +
+  scale_x_continuous(breaks = c(0, 0.5, 1), labels = c("0", "0.5", "1"),
+                     limits = c(0, 1))
+p
+```
+
+Comparison for F$_1$ score:
+```{r F1_sfcb_truffles, warning=FALSE}
+cur_res$f1 <- cur_res$precision * cur_res$recall * 2 / 
+  (cur_res$precision + cur_res$recall)
+p <- ggplot(cur_res, aes(x = summary, y = f1, fill = group)) + 
+  geom_bar(stat = "identity", position = "dodge") + 
+  facet_grid(~ selection) + theme_bw() + ylab(expression(F[1] ~" score")) + 
+  theme(axis.title.x = element_blank())
+p
+```
+
+**Note**: The empty bar for P prediction with cclustofvar/PLS/relief corresponds
+to the case where precision and recall are zero (hence, the F$_1$ score is 
+`NA`).
+
+Comparison for mean square error:
+```{r mse_sfcb_truffles, warning=FALSE}
+p <- ggplot(sfcb_variants, aes(x = summary, y = mse, fill = group)) + 
+  geom_bar(stat = "identity", position = "dodge") + 
+  facet_grid(~ selection) + theme_bw() + ylab("Mean square error") + 
+  theme(axis.title.x = element_blank())
+p
+```
+
+Comparison for computation time:
+```{r time_sfcb_truffles, warning=FALSE}
+p <- ggplot(sfcb_variants, aes(x = summary, y = time, fill = group)) + 
+  geom_bar(stat = "identity", position = "dodge") + 
+  facet_grid(~ selection) + theme_bw() + 
+  theme(axis.title.x = element_blank()) + ylab("Computation time")
+p
+```
+
+# References
+
+::: {#refs}
+:::
+
+# License
+
+<a rel="license" href="http://creativecommons.org/licenses/by/4.0/">
+  <img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png" />
+</a>
+<br />
+This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/4.0/">
+  Creative Commons Attribution 4.0 International License
+</a>.
+
+The code is distributed under 
+[GPL-3 licence](https://www.gnu.org/licenses/gpl-3.0.html).
+
+# Session information
+
+```{r session}
+sessionInfo()
+```
+

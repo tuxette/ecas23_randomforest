@@ -38,7 +38,7 @@ My class will cover 2-3 topics, including:
   repository. You are free to either: i) use it directly on Google Colab by 
   creating a copy (File / Save a copy in drive), ii) use it on your own computer
   (be sure to have the necessary Python libraries installed), or iii) use it in 
-  a RStudio cloud account.
+  a RStudio cloud account. The last version is of *September 7th, 2023*.
   * practical part on "Interval selection for random forest with functional 
   data": <a href="/doc/html/truffle_analysis.html">Truffle analysis with random 
   forest</a>. This file is the HTML output of a Quarto file (i.e., Rmarkdow) and
@@ -48,7 +48,12 @@ My class will cover 2-3 topics, including:
   computer (make sure to have downloaded the data and installed the packages), 
   or iii) use the Quarto file in a RStudio cloud account. Data for this 
   practical session have to be downloaded as described in README file of the 
-  directory `fda/data`.
+  directory `fda/data`. The last version is of *September 7th, 2023*.
+  
+* * **random forest for network inference (in biology)**
+  * [slides (theoretical part)](http://www.nathalievialaneix.eu/doc/pdf/2023-10-09_vialaneix_ECASSFdS2023-network.pdf)
+  are ready! Your are welcome to download them. Minor changes can be introduced
+  later in these slides. The last version is of *September 15th, 2023*.
   
 ## Technical information
 

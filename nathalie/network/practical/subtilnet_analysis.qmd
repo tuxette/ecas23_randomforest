@@ -1,0 +1,298 @@
+---
+title: "Network inference with random forest"
+author: "Nathalie Vialaneix"
+date: 2023-10-09
+date-format: full
+format:
+  html:
+    page-layout: article
+    toc: true
+    toc-title: Content
+    toc-depth: 3
+    toc-location: left
+    html-math-method: mathjax
+    embed-resources: true
+    citations-hover: true
+    footnotes-hover: true
+    code-fold: true
+    code-copy: true
+    code-tools:
+      source: true
+      toggle: true
+    code-summary: "Code"
+    code-overflow: wrap
+    highlight-style: github
+    theme:
+      light: flatly
+      dark: darkly
+    echo: true
+    df-print: paged
+bibliography: ../../bibliography.bib
+---
+
+This practical's aim is to perform network inference using `GENIE3` 
+[@huynhthu_etal_PO2010]. The dataset used to illustrate this practical is an
+extract of the expression data and reconstructed network described in 
+[@nicolas_etal_S2012], that is related to the bacteria *Bacillus subtilis*. Note
+that gene and sample names have been anonymized.
+
+Be also sure to have the proper **R** packages installed (usage of `renv` is
+strongly recommended):
+```{r loadLib, message=FALSE, warning=FALSE}
+library("reshape2")
+library("ggplot2")
+library("GENIE3")
+library("igraph")
+library("PRROC")
+library("rfPermute")
+```
+
+# Data
+
+## Expression data
+
+Expression data is included in the file `../data/expr.csv` and are loaded with:
+```{r loadExpr}
+expr <- read.table("../data/expr.csv", sep = "\t", header = TRUE)
+dim(expr)
+```
+
+The data are organized with genes in rows and samples in columns, the first
+column being the gene name:
+```{r seeExpr}
+head(expr[, 1:10])
+```
+
+A global visualization of the gene expression is available using a heatmap:
+```{r heatmap}
+df_heatmap <- melt(expr, id.vars = "Name")
+names(df_heatmap) <- c("gene", "sample", "expression")
+
+p <- ggplot(df_heatmap, aes(sample, gene)) +
+  geom_tile(aes(fill = expression), color = "white") +
+  scale_fill_gradient(low = "yellow", high = "red") +
+  ylab("genes ") + xlab("samples") + theme(axis.text = element_blank()) +
+  labs(fill = "Expression level")
+p
+```
+
+# Network inference
+
+Network inference will be performed with `GENIE3`:
+```{r helpGENIE3}
+?GENIE3
+```
+
+`GENIE3` requires an expression matrix with genes in rows and gene names as
+row names:
+```{r runGENIE3, message=FALSE, cache=TRUE}
+expr_matrix <- as.matrix(expr[, 2:ncol(expr)])
+rownames(expr_matrix) <- expr$Name
+expr_matrix <- expr_matrix
+set.seed(1055)
+res_GENIE3 <- GENIE3(expr_matrix, nTrees = 50, verbose = TRUE)
+```
+
+*Note*: This simulation is given as a mere illustration of the process. However,
+we can not expect much from the results:
+* 50 trees is probably not enough to obtain a good performance;
+* $\sigma$ factors, which are major regulators in bacteria, are not specified in
+the original data (where they could have been).
+
+
+# Analysis of results
+
+## Loading and displaying the true network
+
+The result is then compared with the ground true network, available in 
+`../data/net.rds` as an `igraph` object:
+```{r loadNet}
+ref_net <- readRDS("../data/net.rds")
+ref_net
+edge_density(ref_net)
+```
+
+The true network can be displayed using:
+```{r plotNet}
+par(mar = rep(0, 4))
+set.seed(1121)
+plot(ref_net, vertex.size = 3, vertex.color = "lightgreen", 
+     vertex.frame.color = "lightgreen", edge.color = "grey", 
+     vertex.label = rep(NA, vcount(ref_net)))
+```
+
+For the sake of simplicity, we will further use the undirected version of the
+network. We also extract the corresponding adjacency matrix:
+```{r undirectedNet}
+undirected_ref <- as.undirected(ref_net, mode = "collapse")
+ref_adj <- as_adj(undirected_ref, sparse = FALSE)
+diag(ref_adj) <- 0
+```
+
+
+## Threshold based on weight distribution
+
+Weight distribution of the solution is explored to visually set a relevant
+threshold:
+```{r weightDist, message=FALSE, warning=FALSE}
+all_weights <- c(res_GENIE3[upper.tri(res_GENIE3)], 
+                 res_GENIE3[lower.tri(res_GENIE3)])
+df <- data.frame("weights" = all_weights)
+p <- ggplot(df, aes(x = weights)) + geom_histogram() + theme_bw() + 
+  scale_x_log10() + geom_vline(xintercept = 1e-2, color = "darkred")
+p
+```
+
+The corresponding (undirected) network is then deduced:
+```{r net1}
+net1 <- res_GENIE3
+net1[res_GENIE3 < 1e-2] <- 0
+net1[res_GENIE3 >= 1e-2] <- 1
+net1 <- graph_from_adjacency_matrix(net1, mode = "max")
+net1
+```
+
+It has a density equal to:
+```{r densityNet1}
+edge_density(net1)
+```
+which is larger than the density of the true network.
+
+Visually, it also looks quite different:
+```{r displayNet1}
+par(mar = rep(0, 4))
+set.seed(1112)
+plot(net1, vertex.size = 3, vertex.color = "lightgreen", 
+     vertex.frame.color = "lightgreen", edge.color = "grey", 
+     vertex.label = rep(NA, vcount(net1)))
+```
+
+It is mostly explained by a very different degree distribution (not using prior
+information on $\sigma$ factor is probably instrumental in this difference):
+```{r degreeComparison}
+df <- data.frame("true" = degree(ref_net), "GENIE3" = degree(net1))
+p <- ggplot(df, aes(x = true, y = GENIE3)) + geom_point(alpha = 0.4) +
+  theme_bw()
+p
+```
+
+
+## Threshold based on realistic density
+
+Another approach would find a threshold based on a realistic value of the 
+network density (obtained from the true network, here):
+```{r setThreshold}
+ref_density <- edge_density(undirected_ref)
+max_weight <- pmax(res_GENIE3[upper.tri(res_GENIE3)],
+                   t(res_GENIE3)[upper.tri(res_GENIE3)])
+thresh <- quantile(max_weight, probs = 1 - ref_density)
+thresh
+```
+
+This threshold is used to define a second network:
+```{r net2}
+net2 <- res_GENIE3
+net2[res_GENIE3 < thresh] <- 0
+net2[res_GENIE3 >= thresh] <- 1
+net2 <- graph_from_adjacency_matrix(net2, mode = "max")
+net2
+```
+
+This network has a density close to the true network, as expected:
+```{r densityNet2}
+edge_density(net2)
+```
+
+But it still does not match the true network visually:
+```{r displayNet2}
+par(mar = rep(0, 4))
+set.seed(1112)
+plot(net2, vertex.size = 3, vertex.color = "lightgreen", 
+     vertex.frame.color = "lightgreen", edge.color = "grey", 
+     vertex.label = rep(NA, vcount(net1)))
+```
+
+And, again, it has a very different degree distribution:
+```{r degreesNet2}
+df <- data.frame("true" = degree(ref_net), "GENIE3" = degree(net2))
+p <- ggplot(df, aes(x = true, y = GENIE3)) + geom_point(alpha = 0.4) +
+  theme_bw()
+p
+```
+
+## Global evaluation
+
+ROC and PR curves are finally obtained, using the set of weights (maximum 
+between the two weights for each edge) for positive (true) and negative (wrong)
+edges:
+```{r rocpr}
+true_edges <- res_GENIE3
+true_edges[ref_adj == 0] <- 0
+true_edges <- pmax(true_edges[upper.tri(true_edges)], 
+                   t(true_edges)[upper.tri(true_edges)])
+true_edges <- true_edges[true_edges != 0]
+
+wrong_edges <- res_GENIE3
+wrong_edges[ref_adj == 1] <- 0
+wrong_edges <- pmax(wrong_edges[upper.tri(wrong_edges)], 
+                    t(wrong_edges)[upper.tri(wrong_edges)])
+wrong_edges <- wrong_edges[wrong_edges != 0]
+
+roc <- roc.curve(scores.class0 = wrong_edges, scores.class1 = true_edges,
+                 curve = TRUE)
+roc
+plot(roc)
+
+pr <- pr.curve(scores.class0 = wrong_edges, scores.class1 = true_edges,
+               curve = TRUE)
+pr
+plot(pr)
+```
+
+
+# Short illustration of the permutation based approach
+
+`rfPermute` can be used to obtain a $p$-value describing the confidence of
+each edge. It requires to be run on each gene used as a target for the 
+prediction, in turn, which would be too long for this practical. We just
+illustrate its use with one of the gene, with a very reduced (and not relevant)
+number of permutations:
+```{r rfPermuteEx, cache=TRUE}
+expr_df <- data.frame(t(expr_matrix))
+set.seed(1241)
+res_rfPermute <- rfPermute(W0285 ~ ., data = expr_df, num.rep = 10, 
+                           p = round(sqrt(500)))
+```
+
+The results contain a $p$-value field that is summarized below:
+```{r resultPermute}
+res_rfPermute
+summary(res_rfPermute$pval[, 2, "scaled"])
+```
+
+Using a threshold of 10% on the $p$-value, we obtain the predictors of "W0285"
+that we can compare to the true neighborhood:
+```{r neiComp}
+ref_nei <- neighborhood(undirected_ref, order = 1, nodes = "W0285")[[1]]$name
+cat("reference:", ref_nei, "\n")
+pred_nei <- names(which(res_rfPermute$pval[, 2, "scaled"] < 0.1))
+cat("predicted:", pred_nei, "\n")
+```
+
+The intersection between the two neighborhood is finally obtained with:
+```{r neiIntersect}
+intersect(ref_nei, pred_nei)
+```
+
+*Note*: Again, the previous analysis is not satisfactory. What would be sounder
+would be to use the results of `GENIE3` as a prior list of interactions to 
+test and to perform `rfPermute` only to edges that have been selected during 
+this prior step.
+
+
+# Session information
+
+```{r session}
+sessionInfo()
+```
+

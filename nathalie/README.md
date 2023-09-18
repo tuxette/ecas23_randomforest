@@ -54,6 +54,16 @@ My class will cover 2-3 topics, including:
   * [slides (theoretical part)](http://www.nathalievialaneix.eu/doc/pdf/2023-10-09_vialaneix_ECASSFdS2023-network.pdf)
   are ready! Your are welcome to download them. Minor changes can be introduced
   later in these slides. The last version is of *September 15th, 2023*.
+  * practical part on "Network inference with random forest":
+  <a href="/doc/html/subtilnet_analysis.html">Analysis of some expression data
+  for *Bacillus subtilis*</a>. This file is the HTML output of a Quarto file 
+  (i.e., Rmarkdow) and its source code is available in the directory 
+  `/network/practical` of this repository. You are free to either: i) directly 
+  use this file and copy/paste the code in an R terminal, ii) use directly the 
+  Quarto file on your own computer (make sure to have downloaded the data and 
+  installed the packages), or iii) use the Quarto file in a RStudio cloud 
+  account. Data for this practical session are included in the directory 
+  `network/data`. The last version is of *September 18th, 2023*.
   
 ## Technical information
 
@@ -76,9 +86,17 @@ work). The following packages are required for the Quarto files:
   - `ggplot2`             3.4.3
   - `reshape2`            1.4.4
   - `SISIR`               0.2.2
+  - `GENIE3`              1.22.0
+  - `igraph`              1.5.1
+  - `PRROC`               1.3.1
+  - `rfPermute`           2.5.2
   
-For **R**, the [`renv`](https://rstudio.github.io/renv/articles/renv.html) configuration file is provided. If you want to use `renv`, the **R** command line `renv::init()` using the "Restore" option should properly install all the required packages for the practicals.
+For **R**, the [`renv`](https://rstudio.github.io/renv/articles/renv.html) 
+configuration file is provided. If you want to use `renv`, the **R** command 
+line `renv::init()` using the "Restore" option should properly install all the 
+required packages for the practicals.
 
   
-Information provided on this page is duplicated at [http://www.nathalievialaneix.eu/teaching/ecas_sfds_rf.html].
+Information provided on this page is duplicated on 
+[my website](http://www.nathalievialaneix.eu/teaching/ecas_sfds_rf.html).
   

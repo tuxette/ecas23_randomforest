@@ -1,0 +1,371 @@
+---
+title: "Practice: CART trees in regression"
+subtitle: "ECAS-SFdS 2023 School"
+author: "Robin Genuer"
+date: today
+title-block-banner: true
+format:
+  html:
+    embed-resources: true
+    number-sections: true
+    toc: true
+    df-print: paged
+execute: 
+  warning: false
+  message: false
+  include: true
+knitr:
+  opts_chunk:
+    tidy: true
+    out.width: 100%
+    fig-width: 6
+    fig.asp: 0.618
+    fig.align: center
+    R.options:
+      width: 80
+---
+
+
+# Regression tree on Ozone data
+
+We consider a dataset on Ozone pollution in Los Angeles in 1976.
+
+Load the dataset, available in the `mlbench` package, using the following
+commands:
+
+```{r, include=TRUE, results='hide'}
+data(Ozone, package = "mlbench")
+# if the package is not yet installed, execute:
+# install.packages("mlbench")
+# str() gives the dataset structure
+str(Ozone)
+```
+
+Consult the help page to get a full description of the dataset:
+
+```{r, include=TRUE, eval=FALSE}
+help(Ozone, package = "mlbench")
+```
+
+In this dataset, we have:
+
+- one continuous output variable (`V4`)
+
+- 12 input variables, which are either categorical (for example the month of the year, `V1`) or continuous (for example the wind speed at Los Angeles airport, `V6`).
+
+
+
+## Intialization
+
+Load the `rpart` package (for **r**ecursive **part**itioning), then read the beginning of `rpart()` function help:
+
+```{r, include=TRUE}
+library("rpart")
+```
+
+```{r, eval=FALSE}
+help(rpart)
+```
+
+
+
+## Tree building.
+
+a. Build one regression tree `Tree` with the `rpart()` function (be careful that the function requires for its first argument a formula as: $\mathtt{y \sim x}$ and a dataset for its second argument, we do not consider the other parameters for now).
+
+```{r}
+Tree <- rpart(V4~., data = Ozone)
+```
+
+
+b. Print the tree by just executing `Tree` and plot the tree using `plot(t)` followed by `text(t)` (the graphics device must be active in order to the `text()` function to work). If the plot is not satisfying, try to set the `xpd` (for "expand") parameter of the `text()` function to `TRUE`.
+
+```{r, results='hide', fig.height=6}
+Tree
+plot(Tree)
+text(Tree, xpd = TRUE)
+```
+
+**Remark**: in Quarto/Rmarkdown chunk, the entire chunk must be executed at once, and not line by line (otherwise the `text()` function cannot run).
+
+
+c. Using the `predict()` function, predict data of the learning set. The `predict()` function requires the tree object and the name of the dataset to predict (look at the `predict.rpart()` help page).\
+Take a look at the prediction value of the 3rd observation of `Ozone` dataframe and retrieve its path trough the tree.
+Compute the empirical error of `Tree`.\
+*[Take care of the missing values of `V4`]*
+
+```{r}
+TreePred <- predict(object = Tree, newdata = Ozone)
+TreePred[3]
+head(Ozone)
+# For the 3rd observation:
+# V8 = 40 < 67.5
+# V10 = 2693 < 3574
+# V1 = 1 (January) belongs to "al" (January, December)
+# Hence the observation falls in the leaf the second most on the left.
+empErr <- mean((Ozone$V4 - TreePred)^2)
+empErr
+# we get NA because of the missing values in V4
+# we can remove missing values inside the mean() function:
+empErr <- mean((Ozone$V4 - TreePred)^2, na.rm = TRUE)
+empErr
+# or remove them by hand:
+naV4 <- which(is.na(Ozone$V4))
+empErr2 <- mean((Ozone$V4[-naV4] - TreePred[-naV4])^2)
+empErr2
+```
+
+**Remark**: The behavior of the `predict()` function is different if you don't enter the `newdata` parameter. Execute `predict(object = Tree)` and calculate the length of the obtained predictions vector.
+
+
+
+## Building parameters
+
+Determine which tree is built when the following commands are executed (see the `rpart.control()` help page for more information on parameters of the tree building):
+
+```{r, include=TRUE}
+Tree1 <- rpart(V4 ~ ., data = Ozone, maxdepth = 1)
+Tree2 <- rpart(V4 ~ ., data = Ozone, minsplit = 2, cp = 0)
+```
+
+
+
+## Empirical errors
+
+Print and plot `Tree1` and `Tree2` and compute their empirical errors.
+
+```{r}
+Tree1
+plot(Tree1) ; text(Tree1, xpd = TRUE)
+Tree1Pred <- predict(Tree1, Ozone)
+empErr1 <- mean((Ozone$V4 - Tree1Pred)^2, na.rm = TRUE)
+empErr1
+```
+
+```{r, results='hide'}
+Tree2
+plot(Tree2)
+# text(Tree2)
+Tree2Pred <- predict(Tree2, Ozone)
+empErr2 <- mean((Ozone$V4 - Tree2Pred)^2, na.rm = TRUE)
+```
+
+```{r}
+empErr2
+```
+
+**Remark**: We perfectly predict learning sample observations here. This illustrates the fact that the maximal tree largely over-fits the data. 
+
+
+
+## Pruning
+
+Let us start by renaming `Tree2` as `TreeMax` to be more explicit:
+
+```{r}
+TreeMax <- Tree2
+```
+
+a. From the maximal tree object, print the results of the nested pruned sub-trees (look at `rpart.object` help page).
+
+```{r, results='hide'}
+TreeMax$cptable
+```
+
+
+b. Determine the complexity value corresponding to the minimum of the cross-validation error (indicated in the `xerror` column).
+
+```{r}
+indCPopt <- which.min(TreeMax$cptable[, "xerror"])
+indCPopt
+CPopt <- TreeMax$cptable[indCPopt, "CP"]
+CPopt
+```
+
+
+c. Prune the maximal tree using the complexity value just found using the `prune()` function.
+
+```{r}
+TreeOpt <- prune(TreeMax, cp = CPopt)
+plot(TreeOpt)
+text(TreeOpt, xpd = TRUE)
+```
+
+
+
+
+# Diving into CART details
+
+Let us continue further on Ozone data.
+
+## `yval`
+
+a. Let start again with `Tree1` the CART tree with only two leaves. Print the resulting tree `Tree1`.
+
+```{r}
+Tree1
+```
+
+b. For each node, the last information given in the print, `yval`, is the value of $Y$ associated to the current node. Check that those values of `yval` are approximately what you expected (with a precision of $10^{-2}$).\
+*[Be aware of missing values]*
+
+```{r}
+tapply(Ozone$V4, Ozone$V8 < 67.5, mean, na.rm = TRUE)
+```
+
+
+c. Determine why those values are not exactly the same at a precision
+of $10^{-6}$.
+
+```{r}
+# There are some missing values for V8, but the tree assigns them anyway
+# to leaves, as it can be seen in where component of object Tree1:
+tapply(na.omit(Ozone$V4), Tree1$where == 2, mean, na.rm = TRUE)
+```
+
+
+
+## Competing splits
+
+a. Apply the `summary()` function to `Tree1`.
+
+```{r}
+summary(Tree1)
+```
+
+
+b. In the result, the "improve" quantity correspond to the proportion of gain in terms of homogeneity brought by the split. Hence, the more the "improve" value is, the more the decrease in in-node variance of child nodes is.
+
+i) Explain what is the split "V12 < 63.59" and why it is printed at this place.
+
+```{r}
+# The split "V12 < 63.59" is the second in decreasing order of gain of
+# homogeneity, i.e. this is the split that would have been chosen if
+# V8 was not available in the data.
+```
+
+
+ii) Compute variances of the child nodes effectively built. Then compute variances of child nodes that would have been built if the split "V12 < 63.59" was used.
+
+```{r}
+tapply(Ozone$V4, Ozone$V8 < 67.5, var, na.rm = TRUE)
+tapply(Ozone$V4, Ozone$V12 < 63.59, var, na.rm = TRUE)
+# We see that the right child node variance is really smaller for the
+# optimal split, whereas the left child node one is larger.
+# To check that the homogeneity gain is effectively larger with the optimal
+# split, a weighted mean of the two variances must be computed.
+OzV4NA <- Ozone[!is.na(Ozone$V4),]
+sum((table(OzV4NA$V8 < 67.5) * tapply(OzV4NA$V4, OzV4NA$V8 < 67.5, var, na.rm = TRUE)) / sum(table(OzV4NA$V8 < 67.5)))
+sum((table(OzV4NA$V12 < 63.59) * tapply(OzV4NA$V4, OzV4NA$V12 < 63.59, var, na.rm = TRUE)) / sum(table(OzV4NA$V12 < 63.59)))
+```
+
+
+
+## Surrogate splits
+
+Still in the display obtained with `summary(Tree1)`, it is question of *surrogate splits*. These splits are classified in descending order of the "agree" quantity (for "agreement"), representing the degree of agreement with the optimal split: the higher the value of a split, the more it sends about the same observations in the left child nodes and right as the optimal split.
+
+a. Construct the cross-table of observations from the Ozone data sent to the left or right by the optimal split and by the first *surrogate split*.\
+*[Remove missing data from the `V4` variable beforehand]*
+
+```{r}
+OzV4NA <- Ozone[!is.na(Ozone$V4),]
+agreement <- table(OzV4NA$V8 < 67.5, OzV4NA$V12 < 67.19)
+agreement
+```
+
+
+b. Compute the ratio between the number of agreements and 359.
+
+```{r}
+sum(diag(agreement)) / 359
+```
+
+
+c. Determine why it was necessary to divide by 359 in the previous question.
+
+```{r}
+# We compute the ratio between the number of observations actually sent in
+# the same child nodes and the number of non-missing observations of the
+# variable associated with the optimal split, here V8.
+```
+
+
+
+## Prediction when values are missing
+
+At each node, *surrogate splits* are therefore calculated. These *surrogate splits* are used to predict an observation which has a missing value (if the value associated with the split variable is missing, the surrogate split with the most "agreement" value is used ; if it is also missing, the next surrogate split is used, etc).
+
+a. For **the two-leaves tree**, determine in which leaf is located the observation on line 1 of Ozone data. Explain the steps performed.
+
+```{r}
+head(Ozone)
+# The variable V8 is missing for this observation. So we're going to look
+# at the value of V12, and compare it to 67.19, because it is the 1st
+# surrogate split. Since 30.56 is less than 67.19, we know that the
+# observation will therefore go in the left child node. We can check this
+# with:
+Tree1$where[1]
+# "2" stands for the left child node of the root node.
+```
+
+
+b. Build **the tree of depth 2 (with 4 leaves)**, then determine in which leaf falls the observation in line 2 of Ozone data, by explaining the path taken to get to this leaf.
+
+```{r}
+Tree4l <- rpart(V4 ~ ., data = Ozone, maxdepth = 2)
+Tree4l
+summary(Tree4l)
+head(Ozone)
+# At the first node (the root), we have a value for V8 (38) which makes the
+# observation go forward in the left child node (node number 2).
+# Arrival at node 2, as the value of V10 is missing, we must look at
+# surrogate splits. The value of V12 is also missing, however
+# V5's is not. We have 5660 < 5675, so the observation will finally go
+# in the left child node of node 2, i.e. node 4.
+Tree4l$where[2]
+# Here the result is 3, because it is the number of the table line:
+Tree4l$frame
+# In line 3, we have node 4 (which is a leaf, while node 3
+# corresponds to the right child node of the root node and is on line 5).
+```
+
+
+
+## Variable importance
+
+Surrogate splits are also used to compute variable importance scores. For a given variable $X^j$, we sum all the gains of homogeneity for nodes where $X^j$ is actually the optimal split variable, and for nodes where this is not the case, we sums the homogeneity gains associated with *surrogate splits* using $X^j$.
+
+a. Build the maximum tree, then display the importance of variables.
+
+```{r}
+arbre_max <- rpart(V4 ~ ., data = Ozone, minsplit = 2, cp = 0)
+imp_cart <- arbre_max$variable.importance
+imp_cart
+```
+
+
+b. Propose a graphical representation of theses variables importance scores.
+
+```{r}
+barplot(imp_cart)
+```
+
+
+c. Repeat the two previous questions by removing missing data at the time of maximal tree building. Comment by explaining what happens with the variable `V9`.
+
+```{r}
+arbre_max_naomit <- rpart(V4 ~ ., data = Ozone, minsplit = 2, cp = 0, na.action = na.omit)
+imp_cart_naomit <- arbre_max_naomit$variable.importance
+barplot(imp_cart_naomit)
+
+# V9 is now in 1st position for the CART tree. Recall that this variable
+# contains a large number of missing data.
+# In conclusion, the importance of the variables calculated by CART gives
+# results consistent with the application here. In any case, it's much more
+# satisfying than thinking that the most important variables are "only" those
+# that appear in the splits of the optimal tree.
+# The only disadvantage of this importance is that, as we see here for V2,
+# it tends to bias the importance of qualitative variables with a large
+# number of levels.
+```

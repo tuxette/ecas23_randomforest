@@ -12,6 +12,8 @@ There is one folder per speaker.
 
 - Nathalie’s material for the school is ready. Check instructions in
   `nathalie/README.md`!
+- Robin's material for the school is ready. Check description in
+`robin/README.md`!
 
 *INSTRUCTIONS*:
 
@@ -24,12 +26,12 @@ quite moderate):
     this [Happy Git with
     R](https://happygitwithr.com/install-git.html)). You can also
     download the ZIP archive of the repository (but in this case you
-    will have to re-download it in case of update)
+    will have to re-download it in case of an update).
 
-2.  Download the courses materials as described in the different folders
+2.  Download the courses materials as described in the different folders.
 
 3.  Download the practicals materials and/or data as described in the
-    different folders
+    different folders.
 
 4.  **Install R** (<https://cloud.r-project.org/>) and the following **R
     packages** (we recommend the use of the [RStudio
@@ -43,19 +45,26 @@ quite moderate):
     - `ranger`
     - `reshape2`
     - `SISIR`
+    - `GENIE3`
+    - `igraph`
+    - `PRROC`
+    - `rfPermute`
     - `RLT` [GitHub Version 4.2.5](https://github.com/teazrq/RLT)
 
-    you can use the following commands to do that:
+    you can use the following commands (from within R) to do that:
 
     ``` r
     install.packages(c("ggplot2", "grf", "mlbench", "randomForest",
-                       "randomForestSRC", "ranger", "reshape2", "SISIR"))
+                       "randomForestSRC", "ranger", "reshape2", "SISIR",
+                       "GENIE3", "igraph", "PRROC", "rfPermute"))
     remotes::install_github("teazrq/RLT")
     ```
 
     for further information and in case of issues of installation of the
     `RLT` package, follow [Install the RLT
     package](https://teazrq.github.io/random-forests-tutorial/rlab/basics/packages.html#Install_the_RLT_Package).
+    
+    On linux, some system dependencies (C++ librairies) might be needed too.
 
 5.  **Install Python** and the following **Python libraries**:
 
@@ -64,17 +73,23 @@ quite moderate):
     - `pyts`
     - `session_info`
     - `sklearn`
+    
+    you can use the following commands (from a command line prompt) to do that:
+    ```
+    pip install matplotlib numpy pyts session_info sklearn
+    ```
 
 **Alternatively**, you can use cloud solutions, which prevent you from
 installing R or Python on your computer and can also help you resolve
 some installation issues:
 
 - [Posit cloud](https://posit.cloud/) for which you **need** to create a
-  **Posit account**
+  **Posit account** (please note that the free account might not be sufficient 
+  for all practical sessions)
 
 - [Google Colab](https://colab.research.google.com/) for which you
   **need** a **Google account**
 
 You may still have to install the different packages/libraries once
 you’re logged in (depending of the type of document/project shared by
-the speakers).
+the speakers). We recommend that you do it before the class has started.

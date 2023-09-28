@@ -1,3 +1,8 @@
+---
+output: 
+  html_document: 
+    keep_md: yes
+---
 # Companion repository for ECAS-SFdS 2023 school
 
 Welcome to the ECAS-SFdS 2023 school **Random forests: basics, extensions and applications**.

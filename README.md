@@ -48,7 +48,8 @@ quite moderate):
     you can use the following commands to do that:
 
     ``` r
-    install.packages(c("ggplot2", "grf", "mlbench", "randomForest", "randomForestSRC", "ranger", "reshape2", "SISIR"))
+    install.packages(c("ggplot2", "grf", "mlbench", "randomForest",
+                       "randomForestSRC", "ranger", "reshape2", "SISIR"))
     remotes::install_github("teazrq/RLT")
     ```
 
@@ -63,3 +64,17 @@ quite moderate):
     - `pyts`
     - `session_info`
     - `sklearn`
+
+**Alternatively**, you can use cloud solutions, which prevent you from
+installing R or Python on your computer and can also help you resolve
+some installation issues:
+
+- [Posit cloud](https://posit.cloud/) for which you **need** to create a
+  **Posit account**
+
+- [Google Colab](https://colab.research.google.com/) for which you
+  **need** a **Google account**
+
+You may still have to install the different packages/libraries once
+you’re logged in (depending of the type of document/project shared by
+the speakers).

@@ -56,7 +56,9 @@ quite moderate):
     ``` r
     install.packages(c("ggplot2", "grf", "mlbench", "randomForest",
                        "randomForestSRC", "ranger", "reshape2", "SISIR",
-                       "GENIE3", "igraph", "PRROC", "rfPermute"))
+                       "igraph", "PRROC", "rfPermute", "BiocManager",
+                       "remotes"))
+    BiocManager::install("GENIE3")
     remotes::install_github("teazrq/RLT")
     ```
 

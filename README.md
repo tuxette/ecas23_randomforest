@@ -66,18 +66,24 @@ quite moderate):
     
     On linux, some system dependencies (C++ librairies) might be needed too.
 
-5.  **Install Python** and the following **Python libraries**:
+5.  **Install Python** (we recommend [Miniconda](https://docs.conda.io/projects/miniconda/en/latest/miniconda-install.html) or [Anaconda](https://docs.anaconda.com/free/anaconda/install/index.html)) and the following **Python libraries**:
 
+    - `notebook`
+    - `jupyterlab`
     - `matplotlib`
     - `numpy`
+    - `pandas`
     - `pyts`
     - `session_info`
-    - `sklearn`
+    - `scikit-learn`
+    - `rfpimp`
+    - `xgboost`
+    - `shap`
     
-    you can use the following commands (from a command line prompt) to do that:
+    you can use the following command (from a terminal on Linux/MacOS or from 'Anaconda prompt', accessible from the Start menu, on Windows) to do that:
     
     ``` bash
-    pip install matplotlib numpy pyts session_info sklearn
+    pip install notebook jupyterlab matplotlib numpy pandas pyts session_info scikit-learn rfpimp xgboost shap
     ```
 
 **Alternatively**, you can use cloud solutions, which prevent you from

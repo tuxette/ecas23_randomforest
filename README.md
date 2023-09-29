@@ -70,12 +70,13 @@ quite moderate):
 
     - `matplotlib`
     - `numpy`
-    - `pandas
+    - `pandas`
     - `pyts`
     - `session_info`
     - `sklearn`
     - `rfpimp`
-    - `xgboost
+    - `xgboost`
+    - `shap`
     
     you can use the following commands (from a terminal on Linux/MacOS or from 'Anaconda prompt', accessible from the Start menu, on Windows) to do that:
     

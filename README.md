@@ -39,26 +39,28 @@ quite moderate):
 
     - `ggplot2`
     - `grf`
+    - `igraph`
     - `mlbench`
+    - `PRROC`
     - `randomForest`
     - `randomForestSRC`
     - `ranger`
     - `reshape2`
-    - `SISIR`
-    - `GENIE3`
-    - `igraph`
-    - `PRROC`
     - `rfPermute`
+    - `SISIR`
+    - `GENIE3` (BioConductor)
     - `RLT` [GitHub Version 4.2.5](https://github.com/teazrq/RLT)
 
     you can use the following commands (from within R) to do that:
 
     ``` r
-    install.packages(c("ggplot2", "grf", "mlbench", "randomForest",
-                       "randomForestSRC", "ranger", "reshape2", "SISIR",
-                       "igraph", "PRROC", "rfPermute", "BiocManager",
-                       "remotes"))
-    BiocManager::install("GENIE3")
+    install.packages(c("ggplot2", "grf", "mlbench", "randomForest", "randomForestSRC",
+    "ranger", "reshape2", "SISIR", "igraph", "PRROC", "rfPermute", "BiocManager", "remotes"))
+    if (!requireNamespace("BiocManager", quietly = TRUE)) {
+    install.packages("BiocManager")}
+    BiocManager::install("GENIE3")                   
+    if (!requireNamespace("remotes", quietly = TRUE)) {
+    install.packages("remotes")}
     remotes::install_github("teazrq/RLT")
     ```
 
@@ -77,7 +79,8 @@ quite moderate):
     - `sklearn`
     
     you can use the following commands (from a command line prompt) to do that:
-    ```
+    
+    ``` bash
     pip install matplotlib numpy pyts session_info sklearn
     ```
 

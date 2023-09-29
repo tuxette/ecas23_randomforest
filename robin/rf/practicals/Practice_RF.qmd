@@ -1,0 +1,315 @@
+---
+title: "Practice: Random Forests basics"
+subtitle: "ECAS-SFdS 2023 School"
+author: "Robin Genuer"
+date: today
+title-block-banner: true
+format:
+  html:
+    embed-resources: true
+    number-sections: true
+    toc: true
+    df-print: paged
+execute: 
+  warning: false
+  message: false
+  include: true
+knitr:
+  opts_chunk:
+    tidy: true
+    cache: true
+    message: false
+    out.width: 100%
+    fig-width: 6
+    fig.asp: 0.618
+    fig.align: center
+    R.options:
+      width: 80
+---
+
+
+# Random forests on Ozone data
+
+We consider a dataset on Ozone pollution in Los Angeles in 1976.
+
+Load the dataset, available in the `mlbench` package, using the following
+commands:
+
+```{r, include=TRUE, results='hide'}
+data(Ozone, package = "mlbench")
+# if the package is not yet installed, execute:
+# install.packages("mlbench")
+# str() gives the dataset structure
+str(Ozone)
+```
+
+Consult the help page to get a full description of the dataset:
+
+```{r, include=TRUE, eval=FALSE}
+help(Ozone, package = "mlbench")
+```
+
+In this dataset, we have:
+
+- one continuous output variable (`V4`)
+
+- 12 input variables, which are either categorical (for example the month of the year, `V1`) or continuous (for example the wind speed at Los Angeles airport, `V6`).
+
+## A first RF
+
+Load the `randomForest` package and consult the help page of the
+`randomForest()` function:
+
+```{r, include=TRUE}
+library("randomForest")
+```
+
+```{r, include=TRUE, eval=FALSE}
+help("randomForest")
+```
+
+Build a random forests predictor, named `rf`, with default values of all parameters.\
+Determine its OOB error using the output print.\
+Apply the `plot()` function to the object `rf` and "check" if the number of trees is sufficient by looking at the plot (we should see a stabilization of the error when the number of trees increases).
+
+```{r, eval=FALSE}
+rf <- randomForest(V4 ~ ., data = Ozone)
+# We must tell to randomForest() how to deal with missing values.
+# We can, for simplicity, remove all missing values of the dataset
+# (even if they are numerous for this example)
+```
+
+```{r}
+rf <- randomForest(V4 ~ ., data = Ozone, na.action = na.omit)
+rf
+plot(rf)
+```
+
+```{r}
+# To simplify subsequent commands, we define xOz and yOz for inputs and outputs:
+OzoneComp <- na.omit(Ozone)
+xOz <- OzoneComp[-4]
+yOz <- OzoneComp$V4
+```
+
+
+```{r}
+# The previous plot informs us that a number of trees smaller than
+# 250 is too small. Again from the plot, we see that a number of trees
+# between 300 and 500 is reasonable. We can try to increase the number
+# of trees and see what happens (take car of the computational time for
+# this example):
+
+rf1000 <- randomForest(xOz, yOz, ntree = 1000)
+plot(rf1000)
+
+# The OOB error is very stable when enough trees are grown, approximately
+# 400 for this example. Here, we can keep the default value which is
+# appropriate, and in case of large execution times we can look for
+# a smaller value.
+```
+
+## Bagging predictor
+
+Now build, still with the `randomForest()` function, a Bagging predictor, named `bag` (made of 500 maximal trees).\
+Compare its OOB error with the previous one.
+
+```{r}
+bag <- randomForest(xOz, yOz, mtry = ncol(xOz))
+bag
+```    
+
+## Tuning of parameters
+
+Tune now the number of variables selected at each node (we can try all possible values in this example since we only have 12 input variables), while letting the number of trees to its default value.
+
+```{r}
+nbvars <- 1:ncol(xOz)
+oobsMtry <- sapply(nbvars, function(nbv) {
+  RF <- randomForest(xOz, yOz, mtry = nbv)
+  return(RF$mse[RF$ntree])})
+```
+
+
+
+```{r}
+# We could stabilize the error estimations by building a few forest per mtry
+# value, at the price of an increasing runtime, e.g. by using:
+replicate(n = 10, expr = randomForest(xOz, yOz)$mse[500])
+```
+
+
+## Permutation-based variable importance
+
+Set an additional parameter of `randomForest()` to get the variable importance scores and then apply the `varImpPlot()` function to the object.
+
+```{r}
+rfImp <- randomForest(xOz, yOz, importance = TRUE)
+varImpPlot(rfImp)
+```
+
+```{r}
+# To only plot the permutation-based varible importance and avoid the scaling
+# of the mean decrease in accuracy by its standard deviation, use:
+varImpPlot(rfImp, type = 1, scale = FALSE)
+```
+
+
+## Other parameters and the object of class `randomForest`
+
+Build a random forest predictor with the following parameters values:
+
+`(replace = FALSE, sampsize = nrow(xOz), mtry = ncol(xOz), ntree = 10, maxnodes = 5)`
+
+What are the characteristics of this RF ?\
+Look carefully at the `forest` component of the resulting object (which is a list) and figure out what its content means.
+
+```{r, results='hide'}
+dumbRF <- randomForest(xOz, yOz, replace = FALSE, sampsize = nrow(xOz), mtry = ncol(xOz), ntree = 10, maxnodes = 5)
+dumbRF$forest
+```
+
+```{r}
+# Bootstrap samples are actually not bootstrap samples: draws are made
+# without replacement, and the number of observations drawn is fixed
+# to the total number of observations in the dataset. So, in this
+# case, all trees are built on the full original dataset.
+#
+# Furthermore, all variables are chosen at each node because mtry = p.
+#
+# Finally, the forest contains 10 identical trees made of 5 leaves.
+```
+
+
+
+
+# Random forests on liver.toxicity data
+
+Load the dataset `liver.toxicity` available in the `mixOmics` package:
+
+```{r, include=TRUE, results='hide'}
+load("liver.toxicity.rda")
+x <- liver.toxicity$gene
+y <- liver.toxicity$clinic$ALB.g.dL.
+dim(x)
+x[1:6, 1:6]
+str(y)
+```
+
+1.  Load the `randomForest` package and consult the help page of the
+    `randomForest()` function:
+    
+    ```{r, include=TRUE}
+    library("randomForest")
+    ```
+    
+    ```{r, include=TRUE, eval=FALSE}
+    help("randomForest")
+    ```
+    
+    Build a random forests predictor, named `rf`, with default values of all parameters.\
+    Determine its OOB error using the output print.\
+    Apply the `plot()` function to the object `rf` and "check" if the number of trees is sufficient by looking at the plot (we should see a stabilization of the error when the number of trees increases).
+    
+    ```{r}
+    rf <- randomForest(x, y)
+    rf
+    plot(rf)
+    ```
+    
+    ```{r}
+    # The previous plot informs us that a number of trees smaller than
+    # 100 is too small. Again from the plot, we see that a number of trees
+    # between 200 and 500 is reasonable. We can try to increase the number
+    # of trees and see what happens (take car of the computational time for
+    # this example):
+    
+    rf1000 <- randomForest(x, y, ntree = 1000)
+    plot(rf1000)
+    
+    # The OOB error is very stable when enough trees are grown, approximately
+    # 200 for this example. Hence, to minimize the computational time (which
+    # can be quite large for this dataset), we fix the number of trees to 200 in
+    # the sequel.
+    
+    nbtreeopt <- 200
+    ```
+    
+
+2.  Now build, still with the `randomForest()` function, a Bagging predictor, named `bag` (made of maximal trees).\
+    Compare its OOB error with the previous one.\
+    
+    ```{r}
+    bag <- randomForest(x, y, mtry = ncol(x))
+    bag
+    ```    
+    
+3.  Tune the number of trees in the forest, while letting the number of
+    variables selected at each node fixed to its default value.\
+    Use the previous plot to guide your choice of tested values.
+    
+    ```{r}
+    # The previous plot informs us that a number of trees smaller than
+    # 100 is too small. Again from the plot, we see that a number of trees
+    # between 200 and 500 is reasonable. We can try to increase the number
+    # of trees and see what happens (take car of the computational time for
+    # this example):
+    
+    rf1000 <- randomForest(x, y, ntree = 1000)
+    plot(rf1000)
+    
+    # The OOB error is very stable when enough trees are grown, approximately
+    # 200 for this example. Hence, to minimize the computational time (which
+    # can be very large for this dataset), we fix the number of trees to 200 in
+    # the sequel.
+    
+    nbtreeopt <- 200
+    ```
+
+4.  Tune now the number of variables selected at each node, while letting
+    the number of trees to its value found in question 3.
+    
+    ```{r}
+    # The default value is 1038 in our case. We only test a few values of
+    # mtry here, because of large computational time.
+    
+    p <- ncol(x)
+    nbvars <- floor(c(sqrt(p), p/10, p/5, p/3, p/2, 2*p/3))
+    oobs_mtry <- rep(NA, length(nbvars))
+    for (nbvInd in seq_along(nbvars)){
+      rf <- randomForest(x, y, ntree = nbtreeopt, mtry = nbvars[nbvInd])
+      oobs_mtry[nbvInd] <- rf$mse[nbtreeopt]
+    }
+    cbind(nbvars, oobs_mtry)
+    plot(nbvars, oobs_mtry, type = "l")
+    nbvaropt <- nbvars[which.min(oobs_mtry)]
+    nbvaropt
+    oobs_mtry[which.min(oobs_mtry)]
+    ```
+
+5.  Build a random forest predictor with the following parameters values:
+    
+    `(replace = FALSE, sampsize = nrow(x), mtry = ncol(x), ntree = 10, maxnodes = 5)`
+    
+    What are the caracteristics of this RF ?\
+    Look carefully at the `forest` component of the resulting object
+    (which is a list) and figure out what its content means.
+    
+    ```{r}
+    # Bootstrap samples are actually not bootstrap samples: draws are made
+    # without replacement, and the number of observations drawn is fixed
+    # to the total number of observations in the dataset. So, in this
+    # case, all trees are built on the full original datatset.
+    
+    # Furthermore, all variables are chosen at each node because mtry = p.
+    
+    # Finally, the forest contains 10 trees and the trees have 5 leaves
+    # maximum.
+    
+    # If we look at the details of the resulting object we see that all trees
+    # are not the same even if it should be the case ! This comes from the
+    # fact that there are somes ties during the splitting process (several
+    # splits lead to the same decrease of the heterogeneity of nodes). In this
+    # case, the final choice of the split is made randomly uniformly among
+    # all ex-aequo splits.
+    ```

@@ -54,13 +54,9 @@ quite moderate):
     you can use the following commands (from within R) to do that:
 
     ``` r
-    install.packages(c("ggplot2", "grf", "mlbench", "randomForest", "randomForestSRC",
-    "ranger", "reshape2", "SISIR", "igraph", "PRROC", "rfPermute", "BiocManager", "remotes"))
-    if (!requireNamespace("BiocManager", quietly = TRUE)) {
-    install.packages("BiocManager")}
+    install.packages(c("ggplot2", "grf", "igraph", "mlbench", "PRROC", "randomForest", "randomForestSRC",
+    "ranger", "reshape2",  "rfPermute", "SISIR", "BiocManager", "remotes"))
     BiocManager::install("GENIE3")                   
-    if (!requireNamespace("remotes", quietly = TRUE)) {
-    install.packages("remotes")}
     remotes::install_github("teazrq/RLT")
     ```
 

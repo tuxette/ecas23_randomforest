@@ -75,7 +75,7 @@ quite moderate):
     - `pandas`
     - `pyts`
     - `session_info`
-    - `sklearn`
+    - `scikit-learn`
     - `rfpimp`
     - `xgboost`
     - `shap`
@@ -83,7 +83,7 @@ quite moderate):
     you can use the following command (from a terminal on Linux/MacOS or from 'Anaconda prompt', accessible from the Start menu, on Windows) to do that:
     
     ``` bash
-    pip install notebook jupyterlab matplotlib numpy pandas pyts session_info sklearn rfpimp xgboost shap
+    pip install notebook jupyterlab matplotlib numpy pandas pyts session_info scikit-learn rfpimp xgboost shap
     ```
 
 **Alternatively**, you can use cloud solutions, which prevent you from

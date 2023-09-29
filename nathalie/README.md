@@ -10,7 +10,7 @@ Do not hesitate to contact me (preferentially **before** the beginning of the
 class) using the contact information available on my 
 [professional website](http://www.nathalievialaneix.eu/).
 
-TD;DR:
+TL;DR:
 
 1. Clone this github repository on your computer
 

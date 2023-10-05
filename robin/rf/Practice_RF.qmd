@@ -183,133 +183,68 @@ dumbRF$forest
 
 
 
-# Random forests on liver.toxicity data
+# Random forests on vac18 data
 
-Load the dataset `liver.toxicity` available in the `mixOmics` package:
+Load the dataset `vac18` from the `vac18.csv` file:
 
 ```{r, include=TRUE, results='hide'}
-load("liver.toxicity.rda")
-x <- liver.toxicity$gene
-y <- liver.toxicity$clinic$ALB.g.dL.
-dim(x)
-x[1:6, 1:6]
-str(y)
+vac18 <- read.csv("vac18.csv", row.names=1, stringsAsFactors = TRUE)
+yVac <- vac18$stimulation
+xVac <- vac18[-ncol(vac18)]
+dim(xVac)
+xVac[1:6, 1:6]
+str(yVac)
 ```
 
-1.  Load the `randomForest` package and consult the help page of the
-    `randomForest()` function:
-    
-    ```{r, include=TRUE}
-    library("randomForest")
-    ```
-    
-    ```{r, include=TRUE, eval=FALSE}
-    help("randomForest")
-    ```
-    
-    Build a random forests predictor, named `rf`, with default values of all parameters.\
-    Determine its OOB error using the output print.\
-    Apply the `plot()` function to the object `rf` and "check" if the number of trees is sufficient by looking at the plot (we should see a stabilization of the error when the number of trees increases).
-    
-    ```{r}
-    rf <- randomForest(x, y)
-    rf
-    plot(rf)
-    ```
-    
-    ```{r}
-    # The previous plot informs us that a number of trees smaller than
-    # 100 is too small. Again from the plot, we see that a number of trees
-    # between 200 and 500 is reasonable. We can try to increase the number
-    # of trees and see what happens (take car of the computational time for
-    # this example):
-    
-    rf1000 <- randomForest(x, y, ntree = 1000)
-    plot(rf1000)
-    
-    # The OOB error is very stable when enough trees are grown, approximately
-    # 200 for this example. Hence, to minimize the computational time (which
-    # can be quite large for this dataset), we fix the number of trees to 200 in
-    # the sequel.
-    
-    nbtreeopt <- 200
-    ```
-    
+## Number of trees
 
-2.  Now build, still with the `randomForest()` function, a Bagging predictor, named `bag` (made of maximal trees).\
-    Compare its OOB error with the previous one.\
-    
-    ```{r}
-    bag <- randomForest(x, y, mtry = ncol(x))
-    bag
-    ```    
-    
-3.  Tune the number of trees in the forest, while letting the number of
-    variables selected at each node fixed to its default value.\
-    Use the previous plot to guide your choice of tested values.
-    
-    ```{r}
-    # The previous plot informs us that a number of trees smaller than
-    # 100 is too small. Again from the plot, we see that a number of trees
-    # between 200 and 500 is reasonable. We can try to increase the number
-    # of trees and see what happens (take car of the computational time for
-    # this example):
-    
-    rf1000 <- randomForest(x, y, ntree = 1000)
-    plot(rf1000)
-    
-    # The OOB error is very stable when enough trees are grown, approximately
-    # 200 for this example. Hence, to minimize the computational time (which
-    # can be very large for this dataset), we fix the number of trees to 200 in
-    # the sequel.
-    
-    nbtreeopt <- 200
-    ```
+Apply the `randomForest()` function with all parameters default values and check if the number of trees is sufficient for this example.
 
-4.  Tune now the number of variables selected at each node, while letting
-    the number of trees to its value found in question 3.
-    
-    ```{r}
-    # The default value is 1038 in our case. We only test a few values of
-    # mtry here, because of large computational time.
-    
-    p <- ncol(x)
-    nbvars <- floor(c(sqrt(p), p/10, p/5, p/3, p/2, 2*p/3))
-    oobs_mtry <- rep(NA, length(nbvars))
-    for (nbvInd in seq_along(nbvars)){
-      rf <- randomForest(x, y, ntree = nbtreeopt, mtry = nbvars[nbvInd])
-      oobs_mtry[nbvInd] <- rf$mse[nbtreeopt]
-    }
-    cbind(nbvars, oobs_mtry)
-    plot(nbvars, oobs_mtry, type = "l")
-    nbvaropt <- nbvars[which.min(oobs_mtry)]
-    nbvaropt
-    oobs_mtry[which.min(oobs_mtry)]
-    ```
+```{r}
+rfVac <- randomForest(xVac, yVac)
+rfVac
+plot(rfVac)
+# In classification, we get one plain line for the "global" error rate, and
+# several other lines which show the per class error rate. Since there is no
+# legend on the graph, one depicts which line correspond to each class by
+# looking e.g. at the confusion matrix given in the preceding print result.
+```
 
-5.  Build a random forest predictor with the following parameters values:
-    
-    `(replace = FALSE, sampsize = nrow(x), mtry = ncol(x), ntree = 10, maxnodes = 5)`
-    
-    What are the caracteristics of this RF ?\
-    Look carefully at the `forest` component of the resulting object
-    (which is a list) and figure out what its content means.
-    
-    ```{r}
-    # Bootstrap samples are actually not bootstrap samples: draws are made
-    # without replacement, and the number of observations drawn is fixed
-    # to the total number of observations in the dataset. So, in this
-    # case, all trees are built on the full original datatset.
-    
-    # Furthermore, all variables are chosen at each node because mtry = p.
-    
-    # Finally, the forest contains 10 trees and the trees have 5 leaves
-    # maximum.
-    
-    # If we look at the details of the resulting object we see that all trees
-    # are not the same even if it should be the case ! This comes from the
-    # fact that there are somes ties during the splitting process (several
-    # splits lead to the same decrease of the heterogeneity of nodes). In this
-    # case, the final choice of the split is made randomly uniformly among
-    # all ex-aequo splits.
-    ```
+
+## Tuning of `mtry`
+
+For this dataset, testing all possible values of `mtry` between 1 and 1000 is quite demanding. Hence, we can start by testing a few values.
+
+```{r}
+p <- ncol(xVac)
+nbvars <- c(sqrt(p)/2, sqrt(p), 2*sqrt(p), p/10, p/4, p/3, p/2, 2*p/3, 3*p/4, p)
+oobsMtry <- sapply(nbvars, function(nbv) {
+  RF <- randomForest(xVac, yVac, mtry = nbv)
+  return(RF$err.rate[RF$ntree, "OOB"])})
+cbind(nbvars = floor(nbvars), oobsMtry = oobsMtry)
+plot(oobsMtry ~ nbvars, type = "b")
+```
+
+
+## Permutation-based variable importance
+
+Build a RF, that computes the permutation-based variable importance scores, with 2000 trees and `mtry` set at 200. \
+Plot the variable importance scores. \
+Retrieve the indices and the names of the 15 most important variables.
+
+```{r}
+rfVacImp <- randomForest(xVac, yVac, mtry = 200, ntree = 2000, importance = TRUE)
+```
+
+```{r}
+varImpPlot(rfVacImp, type = 1, scale = FALSE, cex = 0.8)
+```
+
+```{r}
+impSort <- sort(rfVacImp$importance[, "MeanDecreaseAccuracy"],
+                decreasing = TRUE, index.return = TRUE)
+indVars <-impSort$ix[1:15]
+indVars
+nameVars <- colnames(xVac[, indVars])
+nameVars
+```

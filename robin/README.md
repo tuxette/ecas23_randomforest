@@ -5,8 +5,10 @@
 \
 *Last version*: 2023-09-27
 
-- The Quarto file for the practice session is available in the `cart/practicals/` folder and the resulting html file can be downloaded here:
+- The Quarto file for the practice session is available in the `cart` folder and the resulting html file can be downloaded here:
 [Practice CART](https://plmbox.math.cnrs.fr/f/813366a780084ec49de9/?dl=1)
+\
+*Last version*: 2023-09-27
 
 ## Random Forests (RF) basics
 
@@ -15,5 +17,7 @@
 \
 *Last version*: 2023-09-27
 
-- The Quarto file for the practice session is available in the `rf/practicals/` folder and the resulting html file can be downloaded here:
+- The Quarto file for the practice session is available in the `rf` folder and the resulting html file can be downloaded here:
 [Practice RF basics](https://plmbox.math.cnrs.fr/f/e5c04209b29740d3b3fe/?dl=1)
+\
+*Last version*: 2023-10-05

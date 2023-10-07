@@ -1,6 +1,6 @@
 # Welcome to Pierre's subrepository!
 
-I will give two lectures at the school (see below). The materials for my lectures will be made available below soon (sorry for the delay).
+I will give two lectures at the school (see below). The materials for my lectures will be made available below soon (thanks for your patience!).
 
 For the practical part, I will use the [Scikit-learn](https://scikit-learn.org/stable/) python library through a jupyter notebook. Each lecture will have its own subdirectory with the notebook and some additional files. You can then either:
 * open the notebook in [Google colab](https://colab.research.google.com/). There will then be some instructions to uncomment at the beginning of the notebook to install the required libraries and download the additional files.

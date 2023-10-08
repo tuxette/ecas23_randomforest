@@ -196,6 +196,10 @@ xVac[1:6, 1:6]
 str(yVac)
 ```
 
+Consult the help page to get a full description of the dataset: [vac18 help page on rdocumentation.org](https://www.rdocumentation.org/packages/mixOmics/versions/6.3.2/topics/vac18).
+
+
+
 ## Number of trees
 
 Apply the `randomForest()` function with all parameters default values and check if the number of trees is sufficient for this example.

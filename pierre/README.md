@@ -10,7 +10,7 @@ For the practical part, I will use the [Scikit-learn](https://scikit-learn.org/s
 
 * Tuesday 10/10 morning
 * The current version of the slides can be retrieved [here](https://dox.uliege.be/index.php/s/vKLy8KnUBpSxuyU) (*last version*: 2023-10-07).
-* Material for the practical part will made available [here](vimp)
+* Material for the practical part is available [here](vimp)
 
 ## Lecture 2: Random forests in the supervised learning landscape
 

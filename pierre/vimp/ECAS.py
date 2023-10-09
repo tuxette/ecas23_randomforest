@@ -1,4 +1,4 @@
-# Functions developed specifically for the ECAS course
+# Functions developed specifically for the ECAS-sfds course on Random forests
 
 import numpy as np
 import pandas as pd
@@ -140,7 +140,8 @@ return :
 
     return Rd 
 
-# The code below comes from 
+# Credit: the code below is slightly adapted from the Zhou's code here:
+# https://github.com/ZhengzeZhou/unbiased-feature-importance/blob/master/README.md
 
 def _generate_sample_indices(random_state, n_samples):
     """Private function used to _parallel_build_trees function."""
@@ -148,8 +149,6 @@ def _generate_sample_indices(random_state, n_samples):
     sample_indices = random_instance.randint(0, n_samples, n_samples)
 
     return sample_indices
-
-
 
 def inbag_times_(self, X):
     """ Return n_samples by n_estimators array which keeps track of which samples are

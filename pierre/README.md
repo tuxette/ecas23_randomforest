@@ -9,7 +9,7 @@ For the practical part, I will use the [Scikit-learn](https://scikit-learn.org/s
 ## Lecture 1: Random forests-based variable importance measures
 
 * Tuesday 10/10 morning
-* The current version of the slides can be retrieved [here](https://dox.uliege.be/index.php/s/vKLy8KnUBpSxuyU) (*last version*: 2023-10-07).
+* The current version of the slides can be retrieved [here](https://dox.uliege.be/index.php/s/yXXwH8B4I9PFd9Q) (*last version*: 2023-10-10).
 * Material for the practical part is available [here](vimp)
 
 ## Lecture 2: Random forests in the supervised learning landscape

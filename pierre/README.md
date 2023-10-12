@@ -15,5 +15,5 @@ For the practical part, I will use the [Scikit-learn](https://scikit-learn.org/s
 ## Lecture 2: Random forests in the supervised learning landscape
 
 * Thursday 10/12 afternoon
-* The slides will be available soon.
+* The current version of the slides can be retrieved [here](https://dox.uliege.be/index.php/s/R32z91fV6IO5EeX) (*last version*: 2023-10-12)
 * Material for the practical part is available [here](sl). Alternatively, here is a link to the [notebook](https://drive.google.com/file/d/1NSNLUhp8ApBcH1QmqP9mgWndTSSBzMEe/view?usp=sharing) in Google colab.
